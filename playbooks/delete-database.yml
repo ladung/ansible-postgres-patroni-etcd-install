@@ -1,0 +1,88 @@
+---
+# Playbook xóa databases từ PostgreSQL cluster
+#
+# Sử dụng:
+#   set -a && source .env && set +a
+#   ansible-playbook playbooks/delete-database.yml -i inventory/hosts.yml -e "databases_to_delete=['db1','db2']"
+#
+# Ví dụ:
+#   ansible-playbook playbooks/delete-database.yml -i inventory/hosts.yml -e "databases_to_delete=['identity_integration','integration_gateway']"
+
+- name: Delete PostgreSQL Databases
+  hosts: postgres
+  become: true
+
+  tasks:
+    - name: Check if databases_to_delete is provided
+      ansible.builtin.fail:
+        msg: 'Please provide databases_to_delete parameter. Example: -e "databases_to_delete=[''db1'',''db2'']"'
+      when: databases_to_delete is not defined or databases_to_delete | length == 0
+      run_once: true
+
+    - name: Check if this node is the Patroni leader
+      ansible.builtin.shell: |
+        patronictl -c /etc/patroni/patroni.yml list --format=json | \
+        python3 -c "import sys,json; data=json.load(sys.stdin); print(next((m['Member'] for m in data if m.get('Role') == 'Leader'), ''))"
+      register: patroni_leader
+      changed_when: false
+      run_once: true
+      delegate_to: "{{ groups['postgres'][0] }}"
+
+    - name: Debug - Show leader and databases to delete
+      ansible.builtin.debug:
+        msg: |
+          Patroni Leader: {{ patroni_leader.stdout }}
+          Current host: {{ patroni_name }}
+          Databases to delete: {{ databases_to_delete }}
+      run_once: true
+
+    - name: Terminate active connections to databases
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        db: postgres
+        query: |
+          SELECT pg_terminate_backend(pid)
+          FROM pg_stat_activity
+          WHERE datname = %s
+          AND pid <> pg_backend_pid()
+        positional_args:
+          - "{{ item }}"
+      loop: "{{ databases_to_delete }}"
+      when: patroni_name == patroni_leader.stdout
+      ignore_errors: true
+
+    - name: Drop databases
+      become_user: postgres
+      community.postgresql.postgresql_db:
+        name: "{{ item }}"
+        state: absent
+        login_unix_socket: /var/run/postgresql
+      loop: "{{ databases_to_delete }}"
+      when: patroni_name == patroni_leader.stdout
+      register: db_drop_result
+
+    - name: Display deletion results
+      ansible.builtin.debug:
+        msg: "Database '{{ item.item }}' deleted: {{ item.changed }}"
+      loop: "{{ db_drop_result.results }}"
+      when:
+        - patroni_name == patroni_leader.stdout
+        - db_drop_result.results is defined
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: List remaining databases
+      become_user: postgres
+      community.postgresql.postgresql_query:
+        db: postgres
+        query: "SELECT datname FROM pg_database WHERE datistemplate = false ORDER BY datname"
+      register: remaining_databases
+      when: patroni_name == patroni_leader.stdout
+      changed_when: false
+
+    - name: Show remaining databases
+      ansible.builtin.debug:
+        msg: "Remaining databases: {{ remaining_databases.query_result | map(attribute='datname') | list }}"
+      when:
+        - patroni_name == patroni_leader.stdout
+        - remaining_databases.query_result is defined
