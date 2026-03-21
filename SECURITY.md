@@ -1,5 +1,7 @@
 # Security Hardening Guide
 
+🇻🇳 [Phiên bản tiếng Việt](SECURITY-vi.md)
+
 ## Overview
 
 This document outlines the security features and hardening measures implemented in this PostgreSQL HA cluster deployment. **SECURITY IS CRITICAL** - follow this guide carefully for production deployments.

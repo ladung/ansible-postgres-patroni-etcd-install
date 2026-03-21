@@ -770,7 +770,7 @@ ansible-playbook playbooks/add-replica.yml -i inventory/hosts.yml
 
 ## 💾 Backup & Recovery (pgBackRest)
 
-> **📖 Chi tiết đầy đủ: xem [BACKUP.md](BACKUP.md)** — Chiến lược backup, flow diagrams, retention policy, restore procedures.
+> **📖 Full details: see [BACKUP.md](BACKUP.md)** — Backup strategy, flow diagrams, retention policy, restore procedures. | [Tiếng Việt](BACKUP-vi.md)
 
 ### Architecture
 
@@ -1311,8 +1311,9 @@ This project includes comprehensive documentation:
 
 - **[README.md](README.md)** - Complete documentation (English)
 - **[README-vi.md](README-vi.md)** - Complete documentation (Vietnamese)
-- **[SECURITY.md](SECURITY.md)** - 🔒 Security hardening guide (CRITICAL for production)
-- **[MONITORING.md](MONITORING.md)** - Monitoring stack setup (Prometheus + Grafana)
+- **[BACKUP.md](BACKUP.md)** / **[BACKUP-vi.md](BACKUP-vi.md)** - 💾 Backup & Recovery strategy (pgBackRest)
+- **[SECURITY.md](SECURITY.md)** / **[SECURITY-vi.md](SECURITY-vi.md)** - 🔒 Security hardening guide (CRITICAL for production)
+- **[MONITORING.md](MONITORING.md)** / **[MONITORING-vi.md](MONITORING-vi.md)** - 📊 Monitoring stack setup (Prometheus + Grafana)
 - **[.env.example](.env.example)** - Configuration template
 
 ## 🔒 Security Features

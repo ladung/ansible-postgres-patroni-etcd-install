@@ -841,6 +841,9 @@ Dự án này bao gồm tài liệu đầy đủ:
 
 - **[README.md](README.md)** - Tài liệu tiếng Anh
 - **[README-vi.md](README-vi.md)** - File này (tiếng Việt)
+- **[BACKUP.md](BACKUP.md)** / **[BACKUP-vi.md](BACKUP-vi.md)** - 💾 Chiến lược Backup & Recovery (pgBackRest)
+- **[SECURITY.md](SECURITY.md)** / **[SECURITY-vi.md](SECURITY-vi.md)** - 🔒 Hướng dẫn bảo mật (BẮT BUỘC cho production)
+- **[MONITORING.md](MONITORING.md)** / **[MONITORING-vi.md](MONITORING-vi.md)** - 📊 Hệ thống giám sát (Prometheus + Grafana)
 
 ### Tài liệu kỹ thuật
 
@@ -862,13 +865,15 @@ Dự án này bao gồm tài liệu đầy đủ:
 
 ### Tham khảo nhanh
 
-| Tài liệu | Mục đích | Kích thước |
+| Tài liệu | Mục đích | Ngôn ngữ |
 |----------|---------|------|
-| README.md | Bắt đầu nhanh và tổng quan (Tiếng Anh) | 15KB |
-| README-vi.md | Tài liệu tiếng Việt | 15KB |
-| CLUSTER_CONFIG.md | Tài liệu kỹ thuật đầy đủ | 20KB |
-| ENV_CONFIG_GUIDE.md | Hướng dẫn cấu hình môi trường | 10KB |
-| .env.example | Template cấu hình | 7KB |
+| README.md / README-vi.md | Tổng quan và bắt đầu nhanh | EN / VI |
+| BACKUP.md / BACKUP-vi.md | Chiến lược Backup & Recovery | EN / VI |
+| SECURITY.md / SECURITY-vi.md | Hướng dẫn bảo mật | EN / VI |
+| MONITORING.md / MONITORING-vi.md | Hệ thống giám sát | EN / VI |
+| CLUSTER_CONFIG.md | Tài liệu kỹ thuật đầy đủ | EN |
+| ENV_CONFIG_GUIDE.md | Hướng dẫn cấu hình môi trường | EN |
+| .env.example | Template cấu hình | — |
 
 ## 🎯 Tóm tắt tính năng chính
 

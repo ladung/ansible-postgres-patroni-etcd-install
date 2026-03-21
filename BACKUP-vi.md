@@ -1,43 +1,43 @@
-# Backup & Recovery Strategy — PostgreSQL HA Cluster
+# Chiến lược Backup & Recovery — PostgreSQL HA Cluster
 
-🇻🇳 [Phiên bản tiếng Việt](BACKUP-vi.md)
+🇬🇧 [English Version](BACKUP.md)
 
-## Overview
+## Tổng quan
 
-The system uses **pgBackRest 2.58.0** to back up the entire PostgreSQL 18.1 HA Cluster (3 nodes) to a dedicated backup server via SSH. Supports **Point-in-Time Recovery (PITR)**, continuous **WAL Archiving**, and automatic **Telegram** notifications after each backup.
+Hệ thống sử dụng **pgBackRest 2.58.0** để backup toàn bộ PostgreSQL 18.1 HA Cluster (3 node) sang dedicated backup server qua giao thức SSH. Hỗ trợ **Point-in-Time Recovery (PITR)**, **WAL Archiving** liên tục, và thông báo **Telegram** tự động sau mỗi lần backup.
 
-### Current Specifications (2026-03-21)
+### Thông số hiện tại (2026-03-21)
 
-| Parameter | Value |
-|-----------|-------|
+| Thông số | Giá trị |
+|----------|---------|
 | Database size (raw) | ~770.8 MB (11 databases) |
 | Backup size (compressed) | ~201.7 MB (zstd level 3) |
 | Compression ratio | ~3.8:1 |
-| Retention | **7 days** (time-based) |
-| WAL archiving | `archive_mode=on` on all 3 nodes |
+| Retention | **7 ngày** (time-based) |
+| WAL archiving | `archive_mode=on` trên cả 3 node |
 | Transport | SSH (`pgbackrest` → `postgres`) |
 | Backup server | pg-backup (`$BACKUP_SERVER_IP`) — 4 vCPU / 8 GB RAM |
 
-### Database List
+### Danh sách Database
 
-| Database | Size | Description |
-|----------|------|-------------|
-| btxh_beneficiary | 460 MB | Beneficiaries |
-| btxh_report | 163 MB | Reports |
-| content_category | 25 MB | Content categories |
-| btxh_facility | 18 MB | Social welfare facilities |
-| identity | 16 MB | Identity management |
+| Database | Size | Mô tả |
+|----------|------|-------|
+| btxh_beneficiary | 460 MB | Đối tượng thụ hưởng |
+| btxh_report | 163 MB | Báo cáo |
+| content_category | 25 MB | Danh mục nội dung |
+| btxh_facility | 18 MB | Cơ sở bảo trợ |
+| identity | 16 MB | Quản lý danh tính |
 | openapi | 14 MB | API gateway |
-| btxh_socialworker | 14 MB | Social workers |
+| btxh_socialworker | 14 MB | Nhân viên xã hội |
 | keycloak | 14 MB | Authentication |
 | files | 11 MB | File storage |
-| notification | 8 MB | Notifications |
+| notification | 8 MB | Thông báo |
 | postgres | 8 MB | System database |
-| **Total** | **~751 MB** | **11 databases** |
+| **Tổng** | **~751 MB** | **11 databases** |
 
 ---
 
-## Backup Architecture
+## Kiến trúc Backup
 
 ```mermaid
 graph TB
@@ -76,7 +76,7 @@ graph TB
     style TELE fill:#00BCD4,color:#fff
 ```
 
-### SSH Flow
+### Luồng SSH
 
 ```
 pgbackrest@pg-backup  ──SSH──►  postgres@pg-node1 (Replica)
@@ -85,29 +85,29 @@ pgbackrest@pg-backup  ──SSH──►  postgres@pg-node1 (Replica)
 ```
 
 - SSH key: Ed25519 (`/home/pgbackrest/.ssh/id_ed25519`)
-- Backup server connects **as `postgres` user** on PG nodes
-- pgBackRest on PG nodes runs under `postgres` user
+- Backup server kết nối **với tư cách `postgres` user** trên PG nodes
+- pgBackRest trên PG nodes chạy dưới `postgres` user
 
 ---
 
-## Backup Schedule
+## Lịch Backup
 
 ```mermaid
 flowchart LR
-    subgraph WEEK["Weekly Backup Cycle"]
+    subgraph WEEK["Chu kỳ Backup hàng tuần"]
         direction LR
-        SUN["Sun 01:00<br/>FULL<br/>~770MB → 201MB"]
-        MON["Mon 01:00<br/>DIFF"]
-        TUE["Tue 01:00<br/>DIFF"]
-        WED["Wed 01:00<br/>DIFF"]
-        THU["Thu 01:00<br/>DIFF"]
-        FRI["Fri 01:00<br/>DIFF"]
-        SAT["Sat 01:00<br/>DIFF"]
+        SUN["CN 01:00<br/>FULL<br/>~770MB → 201MB"]
+        MON["T2 01:00<br/>DIFF"]
+        TUE["T3 01:00<br/>DIFF"]
+        WED["T4 01:00<br/>DIFF"]
+        THU["T5 01:00<br/>DIFF"]
+        FRI["T6 01:00<br/>DIFF"]
+        SAT["T7 01:00<br/>DIFF"]
         
         SUN --> MON --> TUE --> WED --> THU --> FRI --> SAT
     end
     
-    subgraph INCR["Incremental every 6h"]
+    subgraph INCR["Incremental mỗi 6h"]
         direction TB
         I1["00:00"]
         I2["06:00"]
@@ -117,9 +117,9 @@ flowchart LR
     
     subgraph RETENTION["Retention"]
         direction TB
-        R1["Time-based: 7 days"]
-        R2["Auto-expire after each backup"]
-        R3["WAL archives cleaned with backups"]
+        R1["Time-based: 7 ngày"]
+        R2["Auto-expire sau mỗi backup"]
+        R3["WAL archives tự dọn theo backup"]
     end
 
     style SUN fill:#4CAF50,color:#fff
@@ -135,67 +135,67 @@ flowchart LR
     style I4 fill:#2196F3,color:#fff
 ```
 
-### Cron Schedule (on pg-backup, user: pgbackrest)
+### Cron Schedule (trên pg-backup, user: pgbackrest)
 
-| Type | Cron Expression | Description | Speed |
-|------|-----------------|-------------|-------|
-| **Full** | `0 1 * * 0` | Sunday 01:00 — Full backup | Slowest (~15s) |
-| **Differential** | `0 1 * * 1-6` | Mon-Sat, 01:00 — Changes since last Full | Medium |
-| **Incremental** | `0 */6 * * *` | Every 6 hours — Changes since last backup | Fastest |
+| Loại | Cron Expression | Mô tả | Tốc độ |
+|------|-----------------|--------|--------|
+| **Full** | `0 1 * * 0` | Chủ nhật 01:00 — Sao lưu toàn bộ | Chậm nhất (~15s) |
+| **Differential** | `0 1 * * 1-6` | Thứ 2-7, 01:00 — Thay đổi kể từ Full gần nhất | Trung bình |
+| **Incremental** | `0 */6 * * *` | Mỗi 6 giờ — Thay đổi kể từ backup gần nhất | Nhanh nhất |
 
-### Estimated Storage (7-day retention)
+### Ước tính dung lượng (7 ngày retention)
 
-| Component | Estimated Size |
-|-----------|----------------|
+| Thành phần | Dung lượng ước tính |
+|------------|---------------------|
 | 1 Full backup (compressed) | ~202 MB |
-| 6 Diff backups | ~10-50 MB each (depending on changes) |
-| 28 Incr backups (4/day × 7 days) | ~1-10 MB each |
-| WAL archives (7 days) | ~200-500 MB |
-| **Total estimated repo** | **~1-2 GB** |
+| 6 Diff backups | ~10-50 MB mỗi cái (tùy thay đổi) |
+| 28 Incr backups (4/ngày × 7 ngày) | ~1-10 MB mỗi cái |
+| WAL archives (7 ngày) | ~200-500 MB |
+| **Tổng ước tính repo** | **~1-2 GB** |
 
 ---
 
-## Backup Execution Flow
+## Luồng thực thi Backup
 
 ```mermaid
 flowchart TD
-    START((Cron Trigger)) --> CHECK_TYPE{Backup Type?}
+    START((Cron Trigger)) --> CHECK_TYPE{Loại Backup?}
     
-    CHECK_TYPE -->|"Sun 01:00"| FULL["Full Backup<br/>Back up all data"]
-    CHECK_TYPE -->|"Mon-Sat 01:00"| DIFF["Differential Backup<br/>Changes since last Full"]
-    CHECK_TYPE -->|"Every 6h"| INCR["Incremental Backup<br/>Changes since last backup"]
+    CHECK_TYPE -->|"CN 01:00"| FULL["Full Backup<br/>Sao lưu toàn bộ dữ liệu"]
+    CHECK_TYPE -->|"T2-T7 01:00"| DIFF["Differential Backup<br/>Thay đổi từ Full gần nhất"]
+    CHECK_TYPE -->|"Mỗi 6h"| INCR["Incremental Backup<br/>Thay đổi từ backup gần nhất"]
     
     FULL --> EXEC["pgbackrest backup<br/>--type=full/diff/incr"]
     DIFF --> EXEC
     INCR --> EXEC
     
-    EXEC --> RESULT{Success?}
+    EXEC --> RESULT{Thành công?}
     
-    RESULT -->|Yes| EXPIRE["pgbackrest expire<br/>Remove backups > 7 days"]
-    RESULT -->|No| FAIL_METRICS["Collect metrics"]
+    RESULT -->|Có| EXPIRE["pgbackrest expire<br/>Xóa backup > 7 ngày"]
+    RESULT -->|Không| FAIL_METRICS["Thu thập metrics"]
     
-    EXPIRE --> METRICS["Collect metrics"]
+    EXPIRE --> METRICS["Thu thập metrics"]
     
     METRICS --> M1["Backup Server<br/>Disk / RAM / Load"]
-    METRICS --> M2["PG Nodes via SSH<br/>Disk / RAM / Load"]
+    METRICS --> M2["PG Nodes qua SSH<br/>Disk / RAM / Load"]
     METRICS --> M3["Patroni Status<br/>Cluster Health"]
-    METRICS --> M4["Database Info<br/>Count / Size / Growth"]
+    METRICS --> M4["Database Info<br/>Số lượng / Dung lượng / Tăng trưởng"]
     
-    M1 --> TELEGRAM["Send Telegram<br/>SUCCESS notification"]
+    M1 --> TELEGRAM["Gửi Telegram<br/>Thông báo THÀNH CÔNG"]
     M2 --> TELEGRAM
     M3 --> TELEGRAM
     M4 --> TELEGRAM
     
     FAIL_METRICS --> F1["Backup Server Metrics"]
     FAIL_METRICS --> F2["PG Nodes Metrics"]
-    FAIL_METRICS --> F3["Last 5 lines of error log"]
+    FAIL_METRICS --> F3["Error Log 5 dòng cuối"]
     
-    F1 --> TELE_FAIL["Send Telegram<br/>FAILURE alert"]
+    F1 --> TELE_FAIL["Gửi Telegram<br/>Cảnh báo THẤT BẠI"]
     F2 --> TELE_FAIL
     F3 --> TELE_FAIL
     
-    TELEGRAM --> END_OK((Done))
-    TELE_FAIL --> END_FAIL((Done))
+    TELEGRAM --> END_OK((Hoàn tất))
+    TELE_FAIL --> END_FAIL((Hoàn tất))
     
     style FULL fill:#4CAF50,color:#fff
     style DIFF fill:#FF9800,color:#fff
@@ -207,40 +207,40 @@ flowchart TD
 
 ---
 
-## Retention Strategy
+## Chiến lược Retention
 
-### Time-based Retention (7 days)
+### Time-based Retention (7 ngày)
 
 ```ini
 # /etc/pgbackrest/pgbackrest.conf
-repo1-retention-full-type=time    # Use time instead of count
-repo1-retention-full=7            # Keep backups for 7 days
-repo1-retention-diff=7            # Keep diffs for 7 days
+repo1-retention-full-type=time    # Dùng thời gian thay vì số lượng
+repo1-retention-full=7            # Giữ backup trong 7 ngày
+repo1-retention-diff=7            # Giữ diff trong 7 ngày
 ```
 
-**How it works:**
+**Cách hoạt động:**
 
-1. After each successful backup, `pgbackrest expire` runs automatically
-2. Removes all Full backups older than 7 days
-3. Diff/Incr backups belonging to deleted Fulls are also removed
-4. WAL archive files no longer needed are cleaned up
+1. Sau mỗi backup thành công, `pgbackrest expire` tự động chạy
+2. Xóa tất cả Full backup cũ hơn 7 ngày
+3. Diff/Incr backup thuộc Full đã xóa cũng bị xóa theo
+4. WAL archive files không còn cần thiết cũng bị dọn sạch
 
-### Retention Flow
+### Luồng Retention
 
 ```mermaid
 flowchart LR
-    subgraph TODAY["Today: Day 8"]
-        NEW["New Full Backup<br/>Day 8"]
+    subgraph TODAY["Hôm nay: Ngày 8"]
+        NEW["New Full Backup<br/>Ngày 8"]
     end
     
-    subgraph KEEP["Retained — within 7 days"]
-        D7["Full Day 1<br/>+ Diff + Incr"]
-        D6["Diff Days 2-7"]
-        D5["Incr every 6h"]
+    subgraph KEEP["Giữ lại — trong 7 ngày"]
+        D7["Full Ngày 1<br/>+ Diff + Incr"]
+        D6["Diff Ngày 2-7"]
+        D5["Incr mỗi 6h"]
     end
     
-    subgraph DELETE["Auto-deleted"]
-        OLD["Full older than 7 days<br/>+ related Diff + Incr<br/>+ WAL archives"]
+    subgraph DELETE["Tự động xóa"]
+        OLD["Full cũ hơn 7 ngày<br/>+ Diff + Incr liên quan<br/>+ WAL archives"]
     end
     
     NEW --> KEEP
@@ -255,38 +255,38 @@ flowchart LR
 
 ## Telegram Notification
 
-### Information in Each Notification
+### Thông tin trong mỗi thông báo
 
-Every time a backup runs (success or failure), the system automatically sends a Telegram message with:
+Mỗi khi backup chạy (thành công hoặc thất bại), hệ thống tự động gửi Telegram với:
 
-**On SUCCESS:**
+**Khi THÀNH CÔNG:**
 
-- Backup type (full/diff/incr), duration, size
-- List of all databases + individual sizes
-- Database count + total size
-- Daily growth rate (compared to previous day)
-- Backup server info: disk, repo size, RAM, load
-- Each PG node info: disk, RAM, load (warning if disk > 80%)
+- Loại backup (full/diff/incr), thời gian, dung lượng
+- Danh sách tất cả databases + dung lượng từng DB
+- Số lượng database + tổng dung lượng
+- Tốc độ tăng trưởng hàng ngày (so với hôm qua)
+- Thông tin backup server: disk, repo size, RAM, load
+- Thông tin từng PG node: disk, RAM, load (cảnh báo nếu disk > 80%)
 - Patroni cluster status (leader/replica/streaming lag)
 
-**On FAILURE:**
+**Khi THẤT BẠI:**
 
-- Error code and timestamp
-- All server metrics
-- Last 5 lines of error log
+- Error code và thời gian
+- Metrics tất cả servers
+- 5 dòng cuối của error log
 
 ### Telegram Configuration
 
 ```bash
-# In .env
+# Trong .env
 TELEGRAM_ENABLED=true
-TELEGRAM_BOT_TOKEN=<bot_token>    # From @BotFather
+TELEGRAM_BOT_TOKEN=<bot_token>    # Từ @BotFather
 TELEGRAM_CHAT_ID=<chat_id>        # Group chat ID
 ```
 
 ---
 
-## pgBackRest Configuration
+## Cấu hình pgBackRest
 
 ### Backup Server (`/etc/pgbackrest/pgbackrest.conf`)
 
@@ -339,7 +339,7 @@ archive-async=y
 pg1-path=/var/lib/postgresql/18/data
 ```
 
-### Related `.env` Variables
+### Biến `.env` liên quan
 
 ```bash
 PGBACKREST_ENABLED=true
@@ -358,22 +358,22 @@ PGBACKREST_INCR_SCHEDULE='0 */6 * * *'
 
 ---
 
-## Manual Operations
+## Thao tác thủ công
 
-### Check Backup Status
+### Kiểm tra trạng thái backup
 
 ```bash
-# View backup info
+# Xem thông tin backup
 ssh root@$BACKUP_SERVER_IP "sudo -u pgbackrest pgbackrest --stanza=main info"
 
-# View detailed JSON
+# Xem chi tiết JSON
 ssh root@$BACKUP_SERVER_IP "sudo -u pgbackrest pgbackrest --stanza=main info --output=json" | python3 -m json.tool
 
-# Check stanza health
+# Kiểm tra stanza health
 ssh root@$BACKUP_SERVER_IP "sudo -u pgbackrest pgbackrest --stanza=main check"
 ```
 
-### Run Manual Backup
+### Chạy backup thủ công
 
 ```bash
 # Full backup
@@ -386,13 +386,13 @@ ssh root@$BACKUP_SERVER_IP "sudo -u pgbackrest pgbackrest --stanza=main --type=d
 ssh root@$BACKUP_SERVER_IP "sudo -u pgbackrest pgbackrest --stanza=main --type=incr backup"
 ```
 
-### Expire Old Backups
+### Xóa backup cũ (expire)
 
 ```bash
 ssh root@$BACKUP_SERVER_IP "sudo -u pgbackrest pgbackrest --stanza=main expire"
 ```
 
-### View Logs
+### Xem logs
 
 ```bash
 # Cron job logs
@@ -407,25 +407,25 @@ ssh root@$BACKUP_SERVER_IP "ls -la /var/log/pgbackrest/"
 
 ## Restore & Recovery
 
-### Restore Flow
+### Luồng Restore
 
 ```mermaid
 flowchart TD
-    NEED["Need Restore"] --> TYPE{Restore type?}
+    NEED["Cần Restore"] --> TYPE{Loại restore?}
     
-    TYPE -->|"Full cluster"| FULL_R["Full Restore"]
-    TYPE -->|"Specific point in time"| PITR["Point-in-Time Recovery"]
-    TYPE -->|"Selected databases"| PARTIAL["Selective Restore"]
+    TYPE -->|"Toàn bộ cluster"| FULL_R["Full Restore"]
+    TYPE -->|"Một thời điểm cụ thể"| PITR["Point-in-Time Recovery"]
+    TYPE -->|"Một số database"| PARTIAL["Restore chọn lọc"]
     
-    FULL_R --> STOP["1. Stop Patroni<br/>on all nodes"]
+    FULL_R --> STOP["1. Stop Patroni<br/>trên tất cả nodes"]
     PITR --> STOP
     PARTIAL --> STOP
     
-    STOP --> CLEAR["2. Clear data directory<br/>on primary node"]
+    STOP --> CLEAR["2. Xóa data directory<br/>trên node primary"]
     CLEAR --> RESTORE["3. pgbackrest restore<br/>--delta"]
-    RESTORE --> START_P["4. Start Patroni<br/>on primary first"]
-    START_P --> WAIT["5. Wait for primary ready<br/>~30 seconds"]
-    WAIT --> START_R["6. Start Patroni<br/>on replicas"]
+    RESTORE --> START_P["4. Start Patroni<br/>trên primary trước"]
+    START_P --> WAIT["5. Đợi primary ready<br/>~30 giây"]
+    WAIT --> START_R["6. Start Patroni<br/>trên replicas"]
     START_R --> VERIFY["7. Verify cluster<br/>patronictl list"]
     
     style FULL_R fill:#4CAF50,color:#fff
@@ -437,43 +437,43 @@ flowchart TD
 ### Full Cluster Restore
 
 ```bash
-# 1. Stop Patroni on all nodes
+# 1. Stop Patroni trên tất cả nodes
 ssh root@$NODE1_IP "systemctl stop patroni"
 ssh root@$NODE2_IP "systemctl stop patroni"
 ssh root@$NODE3_IP "systemctl stop patroni"
 
-# 2. Clear old data on primary
+# 2. Xóa data cũ trên primary
 ssh root@$NODE1_IP "rm -rf /var/lib/postgresql/18/data/*"
 
-# 3. Restore from latest backup
+# 3. Restore từ backup mới nhất
 ssh root@$NODE1_IP "sudo -u postgres pgbackrest --stanza=main --delta restore"
 
-# 4. Start primary first
+# 4. Start primary trước
 ssh root@$NODE1_IP "systemctl start patroni"
 
-# 5. Wait for primary to be ready, start replicas
+# 5. Đợi primary sẵn sàng, start replicas
 sleep 30
 ssh root@$NODE2_IP "systemctl start patroni"
 ssh root@$NODE3_IP "systemctl start patroni"
 
-# 6. Verify cluster
+# 6. Kiểm tra cluster
 ssh root@$NODE1_IP "patronictl -c /etc/patroni/patroni.yml list"
 ```
 
 ### Point-in-Time Recovery (PITR)
 
 ```bash
-# Restore to a specific point in time
+# Restore về thời điểm cụ thể
 ssh root@$NODE1_IP "sudo -u postgres pgbackrest --stanza=main \
   --type=time \"--target=2026-03-21 14:30:00+07\" \
   --target-action=promote \
   --delta restore"
 ```
 
-### Selective Restore (specific databases)
+### Restore chọn lọc (một số database)
 
 ```bash
-# Restore only identity and keycloak databases
+# Chỉ restore database identity và keycloak
 ssh root@$NODE1_IP "sudo -u postgres pgbackrest --stanza=main \
   --db-include=identity --db-include=keycloak \
   --delta restore"
@@ -483,24 +483,24 @@ ssh root@$NODE1_IP "sudo -u postgres pgbackrest --stanza=main \
 
 ## Deployment
 
-### First-time Deployment
+### Triển khai lần đầu
 
 ```bash
 # Load environment
 set -a && source .env && set +a
 
-# Deploy entire backup infrastructure
+# Deploy toàn bộ backup infrastructure
 ansible-playbook playbooks/deploy-backup.yml -i inventory/hosts.yml
 ```
 
-The playbook executes 4 phases:
+Playbook thực hiện 4 phase:
 
-1. **Common setup**: install packages, hostname, firewall, chrony on backup server
-2. **pgBackRest install**: SSH keys, config, stanza creation on backup + PG nodes
-3. **Patroni reload**: enable `archive_mode=on` and `archive_command` via DCS
-4. **Initial full backup**: run first backup + send Telegram notification
+1. **Common setup**: cài packages, hostname, firewall, chrony trên backup server
+2. **pgBackRest install**: SSH keys, config, stanza creation trên backup + PG nodes
+3. **Patroni reload**: bật `archive_mode=on` và `archive_command` qua DCS
+4. **Initial full backup**: chạy backup đầu tiên + gửi Telegram
 
-### File Structure
+### Cấu trúc file
 
 ```
 roles/pgbackrest/
@@ -517,38 +517,38 @@ roles/pgbackrest/
 
 ## Troubleshooting
 
-### Check WAL Archiving
+### Kiểm tra WAL archiving
 
 ```bash
-# Archive status on PG node
+# Archive status trên PG node
 ssh root@$NODE1_IP "sudo -u postgres psql -c 'SELECT * FROM pg_stat_archiver;'"
 
-# Check archive_mode
+# Kiểm tra archive_mode
 ssh root@$NODE1_IP "sudo -u postgres psql -c 'SHOW archive_mode;'"
 ```
 
-### Backup Failure
+### Backup bị lỗi
 
 ```bash
-# View detailed log
+# Xem log chi tiết
 ssh root@$BACKUP_SERVER_IP "tail -100 /var/log/pgbackrest/cron-full.log"
 
-# Check SSH connectivity
+# Kiểm tra SSH kết nối
 ssh root@$BACKUP_SERVER_IP "sudo -u pgbackrest ssh postgres@$NODE1_IP hostname"
 
-# Check stanza
+# Kiểm tra stanza
 ssh root@$BACKUP_SERVER_IP "sudo -u pgbackrest pgbackrest --stanza=main check"
 ```
 
-### Rapid Database Growth
+### Database tăng trưởng nhanh
 
 ```bash
-# View growth history
+# Xem lịch sử tăng trưởng
 ssh root@$BACKUP_SERVER_IP "cat /var/log/pgbackrest/db_size_history.log"
 
-# View repo size
+# Xem dung lượng repo
 ssh root@$BACKUP_SERVER_IP "du -sh /var/lib/pgbackrest/"
 
-# If repo is too large, run manual expire
+# Nếu repo quá lớn, chạy expire thủ công
 ssh root@$BACKUP_SERVER_IP "sudo -u pgbackrest pgbackrest --stanza=main expire"
 ```

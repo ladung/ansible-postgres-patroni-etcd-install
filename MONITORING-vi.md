@@ -1,12 +1,12 @@
-# PostgreSQL HA Cluster - Monitoring Stack
+# PostgreSQL HA Cluster - Hệ thống Giám sát
 
-🇻🇳 [Phiên bản tiếng Việt](MONITORING-vi.md)
+🇬🇧 [English Version](MONITORING.md)
 
-## Overview
+## Tổng quan
 
-Full monitoring stack with **Prometheus + Grafana** to monitor the PostgreSQL HA cluster.
+Hệ thống giám sát đầy đủ với **Prometheus + Grafana** để theo dõi PostgreSQL HA cluster.
 
-## Architecture
+## Kiến trúc
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -35,61 +35,61 @@ Full monitoring stack with **Prometheus + Grafana** to monitor the PostgreSQL HA
 │  └─────────────────────────────────────────────────────┘   │
 │                                                              │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │ Node 2 (pg-node2) - Same exporters                  │   │
+│  │ Node 2 (pg-node2) - Các exporter tương tự          │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                                                              │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │ Node 3 (pg-node3) - Same exporters                  │   │
+│  │ Node 3 (pg-node3) - Các exporter tương tự          │   │
 │  └─────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Components
+## Thành phần
 
 ### 1. **Prometheus** (Port 9090)
 
-- Time-series database
-- Scrapes metrics every 15 seconds
-- Stores data for 30 days (configurable)
-- Alert rules for critical events
+- Cơ sở dữ liệu time-series
+- Thu thập metrics mỗi 15 giây
+- Lưu trữ 30 ngày (có thể cấu hình)
+- Quy tắc cảnh báo cho sự kiện nghiêm trọng
 
 ### 2. **Grafana** (Port 3000)
 
-- Visualization dashboard
-- Pre-configured dashboards:
-  - PostgreSQL Overview
+- Dashboard trực quan hóa
+- Dashboard cấu hình sẵn:
+  - Tổng quan PostgreSQL
   - Patroni HA Cluster
-  - System Metrics (Node Exporter)
+  - Metrics Hệ thống (Node Exporter)
   - etcd Cluster
-- Alert notifications (optional)
+- Thông báo cảnh báo (tùy chọn)
 
-### 3. **Exporters** (On each PostgreSQL node)
+### 3. **Exporters** (Trên mỗi PostgreSQL node)
 
 - **node_exporter** (9100): CPU, RAM, Disk, Network
-- **postgres_exporter** (9187): Connections, queries, replication lag
-- **pgbouncer_exporter** (9127): Connection pool stats
-- **patroni metrics** (8008): Leader/replica state, failover events
-- **etcd metrics** (2379): Cluster health, leader changes
+- **postgres_exporter** (9187): Kết nối, truy vấn, replication lag
+- **pgbouncer_exporter** (9127): Thống kê connection pool
+- **patroni metrics** (8008): Trạng thái leader/replica, sự kiện failover
+- **etcd metrics** (2379): Sức khỏe cluster, thay đổi leader
 
-## Installation
+## Cài đặt
 
-### Step 1: Configure Environment
+### Bước 1: Cấu hình Môi trường
 
 ```bash
 cd /path/to/postgres-patroni-etcd-install
 
-# Copy and edit .env
+# Sao chép và chỉnh sửa .env
 cp .env.example .env
 nano .env
 ```
 
-**Key monitoring variables in `.env`:**
+**Biến monitoring chính trong `.env`:**
 
 ```bash
-# Enable/Disable Monitoring
+# Bật/Tắt Monitoring
 MONITORING_ENABLED=true
 
-# Monitoring Server (can be a dedicated node or one of the 3 postgres nodes)
+# Monitoring Server (có thể là node riêng hoặc dùng 1 trong 3 postgres nodes)
 MONITORING_SERVER_IP=10.0.0.22
 MONITORING_SERVER_NAME=pg-node1
 
@@ -110,35 +110,35 @@ POSTGRES_EXPORTER_PORT=9187
 PGBOUNCER_EXPORTER_PORT=9127
 ```
 
-**Notes:**
+**Lưu ý:**
 
-- Set `MONITORING_ENABLED=true` to enable monitoring
-- `MONITORING_SERVER_IP` and `MONITORING_SERVER_NAME` to specify a dedicated monitoring server
-- If no dedicated server is available, you can use `pg-node1` (or whichever node has spare resources)
+- Set `MONITORING_ENABLED=true` để bật monitoring
+- `MONITORING_SERVER_IP` và `MONITORING_SERVER_NAME` để chỉ định máy chủ monitoring riêng
+- Nếu không có server riêng, có thể dùng `pg-node1` (hoặc node nào có tài nguyên dư)
 
-### Step 2: Deploy Monitoring Stack
+### Bước 2: Triển khai Monitoring Stack
 
 ```bash
-# Load environment
+# Nạp biến môi trường
 set -a && source .env && set +a
 
-# Deploy full stack (recommended)
+# Triển khai toàn bộ (khuyến nghị)
 ./scripts/deploy_monitoring.sh --all
 
-# Or deploy individual components
-./scripts/deploy_monitoring.sh --exporters    # Exporters only
-./scripts/deploy_monitoring.sh --prometheus   # Prometheus only
-./scripts/deploy_monitoring.sh --grafana      # Grafana only
+# Hoặc triển khai từng thành phần
+./scripts/deploy_monitoring.sh --exporters    # Chỉ exporters
+./scripts/deploy_monitoring.sh --prometheus   # Chỉ Prometheus
+./scripts/deploy_monitoring.sh --grafana      # Chỉ Grafana
 ```
 
-### Step 3: Verify Deployment
+### Bước 3: Xác minh Triển khai
 
 ```bash
-# Check health of all services
+# Kiểm tra sức khỏe tất cả services
 ./scripts/deploy_monitoring.sh --check
 ```
 
-Expected output:
+Kết quả mong đợi:
 
 ```
 ✓ Prometheus is healthy
@@ -148,7 +148,7 @@ Expected output:
 ✓ PgBouncer Exporter is running (all nodes)
 ```
 
-## Access URLs
+## URL Truy cập
 
 ### Prometheus
 
@@ -162,11 +162,11 @@ Alerts: http://<node-ip>:9090/alerts
 
 ```
 URL: http://<node-ip>:3000
-Username: admin (default)
-Password: Check GRAFANA_ADMIN_PASSWORD in .env
+Username: admin (mặc định)
+Password: Xem GRAFANA_ADMIN_PASSWORD trong .env
 ```
 
-### Exporters (per node)
+### Exporters (mỗi node)
 
 ```
 Node Exporter: http://<node-ip>:9100/metrics
@@ -178,74 +178,74 @@ etcd Metrics: http://<node-ip>:2379/metrics
 
 ## Grafana Dashboards
 
-After logging into Grafana, there are 4 pre-configured dashboards:
+Sau khi đăng nhập Grafana, có 4 dashboard cấu hình sẵn:
 
-### 1. **PostgreSQL Overview**
+### 1. **Tổng quan PostgreSQL**
 
-- Database status (up/down)
-- Active connections per database
+- Trạng thái database (hoạt động/ngừng)
+- Kết nối đang hoạt động theo database
 - Replication lag
-- Transaction rate (commits/rollbacks)
-- Cache hit ratio
-- Dead tuples count
+- Tỷ lệ transaction (commits/rollbacks)
+- Tỷ lệ cache hit
+- Số lượng dead tuples
 
 ### 2. **Patroni HA Cluster**
 
-- Current leader node
-- Cluster member states
-- Timeline changes (failover events)
-- DCS (etcd) connectivity
+- Node leader hiện tại
+- Trạng thái thành viên cluster
+- Thay đổi timeline (sự kiện failover)
+- Kết nối DCS (etcd)
 
-### 3. **Node Exporter - System Metrics**
+### 3. **Node Exporter - Metrics Hệ thống**
 
-- CPU usage per core
-- Memory usage (total/available)
-- Disk usage per mount point
-- Network traffic (RX/TX)
+- Sử dụng CPU theo core
+- Sử dụng bộ nhớ (tổng/khả dụng)
+- Sử dụng disk theo mount point
+- Lưu lượng mạng (RX/TX)
 - Disk I/O
 
 ### 4. **etcd Cluster**
 
-- Leader status
-- Leader change rate
-- RPC traffic
-- Disk sync duration
+- Trạng thái leader
+- Tỷ lệ thay đổi leader
+- Lưu lượng RPC
+- Thời gian đồng bộ disk
 
-## Alert Rules
+## Quy tắc Cảnh báo
 
-Prometheus has built-in alert rules for:
+Prometheus có sẵn quy tắc cảnh báo cho:
 
-### Critical Alerts
+### Cảnh báo Nghiêm trọng (Critical)
 
-- **PostgreSQLDown**: Database instance down > 1 minute
-- **PatroniNoLeader**: Cluster has no leader > 1 minute
-- **EtcdNoLeader**: etcd has no leader > 1 minute
-- **NodeDown**: Server not responding > 2 minutes
-- **PgBouncerDown**: Connection pooler down > 2 minutes
+- **PostgreSQLDown**: Database instance ngừng > 1 phút
+- **PatroniNoLeader**: Cluster không có leader > 1 phút
+- **EtcdNoLeader**: etcd không có leader > 1 phút
+- **NodeDown**: Server không phản hồi > 2 phút
+- **PgBouncerDown**: Connection pooler ngừng > 2 phút
 
-### Warning Alerts
+### Cảnh báo (Warning)
 
-- **PostgreSQLReplicationLag**: Lag > 60 seconds
+- **PostgreSQLReplicationLag**: Lag > 60 giây
 - **PostgreSQLTooManyConnections**: > 80% max connections
-- **HighCPUUsage**: CPU > 80% for 5 minutes
-- **HighMemoryUsage**: RAM > 85% for 5 minutes
-- **LowDiskSpace**: Disk < 15% free space
+- **HighCPUUsage**: CPU > 80% trong 5 phút
+- **HighMemoryUsage**: RAM > 85% trong 5 phút
+- **LowDiskSpace**: Disk < 15% dung lượng trống
 
-## Maintenance
+## Bảo trì
 
-### Update Exporters
+### Cập nhật Exporters
 
 ```bash
-# Update version trong .env
+# Cập nhật phiên bản trong .env
 nano .env
-# Change NODE_EXPORTER_VERSION, POSTGRES_EXPORTER_VERSION, etc.
+# Thay đổi NODE_EXPORTER_VERSION, POSTGRES_EXPORTER_VERSION, v.v.
 
-# Re-deploy
+# Triển khai lại
 set -a && source .env && set +a
 ./scripts/deploy_monitoring.sh --exporters
 ```
 
-### Restart Services
+### Khởi động lại Services
 
 ```bash
 # Prometheus
@@ -254,13 +254,13 @@ ssh root@<node-ip> "systemctl restart prometheus"
 # Grafana
 ssh root@<node-ip> "systemctl restart grafana-server"
 
-# Exporters (per node)
+# Exporters (mỗi node)
 ssh root@<node-ip> "systemctl restart node_exporter"
 ssh root@<node-ip> "systemctl restart postgres_exporter"
 ssh root@<node-ip> "systemctl restart pgbouncer_exporter"
 ```
 
-### Check Logs
+### Kiểm tra Logs
 
 ```bash
 # Prometheus
@@ -274,79 +274,79 @@ ssh root@<node-ip> "journalctl -u node_exporter -f"
 ssh root@<node-ip> "journalctl -u postgres_exporter -f"
 ```
 
-## Troubleshooting
+## Xử lý Sự cố
 
-### Prometheus Cannot Scrape Metrics
+### Prometheus không thu thập được metrics
 
 ```bash
-# Check firewall
+# Kiểm tra firewall
 ufw status
 
-# Open ports if needed
+# Mở port nếu cần
 ufw allow 9100/tcp  # node_exporter
 ufw allow 9187/tcp  # postgres_exporter
 ufw allow 9127/tcp  # pgbouncer_exporter
 ```
 
-### PostgreSQL Exporter Cannot Connect
+### PostgreSQL Exporter không kết nối được
 
 ```bash
-# Check DSN in /etc/default/postgres_exporter
+# Kiểm tra DSN trong /etc/default/postgres_exporter
 cat /etc/default/postgres_exporter
 
-# Test connection manually
+# Test kết nối thủ công
 psql "postgresql://admin:<password>@localhost:5432/postgres"
 
-# Restart exporter
+# Khởi động lại exporter
 systemctl restart postgres_exporter
 ```
 
-### Grafana Not Showing Dashboards
+### Grafana không hiện dashboards
 
 ```bash
-# Check provisioning directory
+# Kiểm tra thư mục provisioning
 ls -la /var/lib/grafana/dashboards/
 
-# Check Grafana logs
+# Kiểm tra Grafana logs
 journalctl -u grafana-server -n 100
 ```
 
-## Performance Impact
+## Tác động Hiệu năng
 
-Monitoring stack has minimal impact:
+Hệ thống monitoring có tác động tối thiểu:
 
-| Component | CPU | RAM | Disk I/O |
-|-----------|-----|-----|----------|
-| Prometheus | <2% | ~1GB | Low |
-| Grafana | <1% | ~200MB | Very Low |
-| node_exporter | <0.5% | ~20MB | Very Low |
-| postgres_exporter | <1% | ~50MB | Low |
-| pgbouncer_exporter | <0.5% | ~20MB | Very Low |
+| Thành phần | CPU | RAM | Disk I/O |
+|------------|-----|-----|----------|
+| Prometheus | <2% | ~1GB | Thấp |
+| Grafana | <1% | ~200MB | Rất thấp |
+| node_exporter | <0.5% | ~20MB | Rất thấp |
+| postgres_exporter | <1% | ~50MB | Thấp |
+| pgbouncer_exporter | <0.5% | ~20MB | Rất thấp |
 
-**Total overhead per node:** ~2-3% CPU, ~100MB RAM
+**Tổng overhead mỗi node:** ~2-3% CPU, ~100MB RAM
 
-## Security Recommendations
+## Khuyến nghị Bảo mật
 
-1. **Change default Grafana password** in `.env`
-2. **Enable authentication** for Prometheus if exposed to the internet
-3. **Use firewall** to restrict access to monitoring ports
-4. **Enable SSL/TLS** for Grafana in production
-5. **Rotate secrets** in `GRAFANA_SECRET_KEY`
+1. **Đổi mật khẩu Grafana mặc định** trong `.env`
+2. **Bật xác thực** cho Prometheus nếu expose ra internet
+3. **Dùng firewall** để giới hạn truy cập đến monitoring ports
+4. **Bật SSL/TLS** cho Grafana trong production
+5. **Luân chuyển secret** trong `GRAFANA_SECRET_KEY`
 
-## Integration with Alertmanager (Optional)
+## Tích hợp Alertmanager (Tùy chọn)
 
-To send alerts via Slack/Email:
+Nếu muốn gửi cảnh báo qua Slack/Email:
 
 ```bash
-# Install Alertmanager
-# Set PROMETHEUS_ALERTMANAGER_TARGETS in .env
+# Cài đặt Alertmanager
+# Set PROMETHEUS_ALERTMANAGER_TARGETS trong .env
 PROMETHEUS_ALERTMANAGER_TARGETS=localhost:9093
 
-# Re-deploy Prometheus
+# Triển khai lại Prometheus
 ./scripts/deploy_monitoring.sh --prometheus
 ```
 
-## Files Structure
+## Cấu trúc File
 
 ```
 roles/
@@ -385,7 +385,7 @@ roles/
     └── defaults/main.yml
 ```
 
-## Additional Resources
+## Tài liệu Tham khảo
 
 - [Prometheus Documentation](https://prometheus.io/docs/)
 - [Grafana Documentation](https://grafana.com/docs/)
